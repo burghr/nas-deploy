@@ -6,7 +6,8 @@
 #   1. Fetch the branch from origin.
 #   2. If HEAD already matches, do nothing.
 #   3. If not, reset the folder to origin/BRANCH.
-#   4. If the folder has a compose file, run "docker compose up -d --build".
+#   4. If the folder has an executable on-deploy.sh, run it.
+#      Otherwise, if the folder has a compose file, run "docker compose up -d --build".
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -65,11 +66,21 @@ for app in $APPS; do
   fi
   [ "$(sync_repo "$dir")" = changed ] || continue
 
+  # An app that is not a Docker stack ships its own on-deploy.sh.
+  if [ -x "$dir/on-deploy.sh" ]; then
+    if (cd "$dir" && ./on-deploy.sh >> "$LOG_FILE" 2>&1); then
+      log "$dir: on-deploy.sh done"
+    else
+      log "$dir: on-deploy.sh FAILED, see lines above"
+    fi
+    continue
+  fi
+
   compose=""
   for f in compose.yaml compose.yml docker-compose.yml docker-compose.yaml; do
     [ -f "$dir/$f" ] && { compose="$f"; break; }
   done
-  [ -n "$compose" ] || continue
+  [ -n "$compose" ] || { log "$dir: no compose file and no on-deploy.sh, nothing restarted"; continue; }
 
   if (cd "$dir" && $DOCKER compose -f "$compose" up -d --build >> "$LOG_FILE" 2>&1); then
     log "$dir: compose up done"

@@ -33,6 +33,19 @@ To use a different interval, pass a cron schedule:
 
 Nothing else is needed. The next run picks it up.
 
+## Apps that are not Docker stacks
+
+Put an executable `on-deploy.sh` in the root of the app repo. When the
+folder changes, `deploy.sh` runs that script instead of `docker compose`.
+The script runs inside the app folder. For example, a systemd service:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+.venv/bin/pip install -q -r requirements.txt
+sudo -n systemctl restart my-service
+```
+
 ## Rules
 
 - The script uses `git reset --hard`. A hand edit to a tracked file on the
