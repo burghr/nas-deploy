@@ -13,12 +13,18 @@ copy starts at once.
 ## Setup on the NAS
 
 ```bash
-cd /home/bryant
+cd ~
 git clone https://github.com/burghr/nas-deploy.git
 cd nas-deploy
 cp .env.example .env    # edit the APPS list
-./install.sh            # adds the cron entry, every 5 minutes
+./install.sh            # writes /etc/cron.d/nas-deploy, every 5 minutes (needs sudo)
 ```
+
+`install.sh` writes the cron entry to `/etc/cron.d/nas-deploy`, not to the
+user crontab. On OpenMediaVault, folder2ram keeps the user crontabs in RAM, so
+a reboot can lose them. `deploy.sh` writes to the log only when an app changes,
+so a quiet log does not prove that cron runs. To check, read the cron journal:
+`sudo journalctl -u cron | grep nas-deploy`.
 
 To use a different interval, pass a cron schedule:
 
@@ -61,5 +67,5 @@ Each run appends to `deploy.log` in this folder. A run with no change
 writes nothing. Check the last lines with:
 
 ```bash
-tail -n 20 /home/bryant/nas-deploy/deploy.log
+tail -n 20 ~/nas-deploy/deploy.log
 ```
